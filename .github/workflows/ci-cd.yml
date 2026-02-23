@@ -1,0 +1,49 @@
+name: Microservices CI/CD
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        [cite_start]service: [frontend, cartservice]
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build and Push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./src/${{ matrix.service }}${{ matrix.service == 'cartservice' ? '/src' : '' }}
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest
+
+      - name: Update Kustomize
+        run: |
+          cd k8s/overlays/staging
+          kubectl kustomize edit set image ${{ matrix.service }}=${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest
+          cd ../production
+          kubectl kustomize edit set image ${{ matrix.service }}=${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest
+          
+      - name: Commit changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit -m "Update ${{ matrix.service }} image" || exit 0
+          git pull --rebase origin main
+          git push
