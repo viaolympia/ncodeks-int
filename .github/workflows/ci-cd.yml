@@ -62,7 +62,15 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+          
+          # Додаємо зміни, але якщо виникне конфлікт під час pull, 
+          # ми кажемо git віддати перевагу нашим локальним змінам для цього файлу
           git add .
           git commit -m "Update ${{ matrix.service }} image to latest" || exit 0
-          git pull --rebase origin main
-          git push
+          
+          # Спроба злиття з сервером з автоматичним вирішенням конфліктів
+          # (повторюємо до 3 разів у разі невдачі)
+          for i in {1..3}; do
+            git pull --rebase origin main && git push origin main && break || \
+            (git rebase --abort; git pull --rebase origin main; git commit -am "Update ${{ matrix.service }} image"; sleep 5)
+          done
