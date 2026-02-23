@@ -1,4 +1,5 @@
 name: Microservices CI/CD
+
 on:
   push:
     branches: [ main ]
@@ -10,40 +11,46 @@ env:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        [cite_start]service: [frontend, cartservice]
     permissions:
       contents: write
       packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [frontend, cartservice]
+    
     steps:
-      - uses: actions/checkout@v4
-      - name: Login to GHCR
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Build and Push
+
+      - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
+          # Для cartservice контекст знаходиться в src/cartservice/src, для frontend - в src/frontend
           context: ./src/${{ matrix.service }}${{ matrix.service == 'cartservice' ? '/src' : '' }}
           push: true
           tags: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest
 
-      - name: Update Kustomize
+      - name: Update Kustomize images
         run: |
+          # Оновлюємо тег образу в обох середовищах (Staging та Production)
           cd k8s/overlays/staging
           kubectl kustomize edit set image ${{ matrix.service }}=${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest
           cd ../production
           kubectl kustomize edit set image ${{ matrix.service }}=${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest
-          
-      - name: Commit changes
+
+      - name: Commit and push changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add .
-          git commit -m "Update ${{ matrix.service }} image" || exit 0
+          git commit -m "Update ${{ matrix.service }} image to latest" || exit 0
           git pull --rebase origin main
           git push
