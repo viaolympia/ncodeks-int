@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         service: [frontend, cartservice]
-
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -46,13 +46,13 @@ jobs:
           push: true
           tags: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest
 
-       - name: Update Kustomize images
-         run: |
+      - name: Update Kustomize images
+        run: |
           echo "Updating Staging..."
-          cd k8s/overlays/staging && kustomize edit set image "${{ matrix.service }}=${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest"
-          cd ../../../
+          kustomize edit set image ${{ matrix.service }}=${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest ${GITHUB_WORKSPACE}/k8s/overlays/staging
+
           echo "Updating Production..."
-          cd k8s/overlays/production && kustomize edit set image "${{ matrix.service }}=${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest"
+          kustomize edit set image ${{ matrix.service }}=${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest ${GITHUB_WORKSPACE}/k8s/overlays/production
 
       - name: Commit and push changes
         run: |
