@@ -48,17 +48,16 @@ jobs:
 
       - name: Update Kustomize images
         run: |
-          # Визначаємо компоненти образу
           NEW_IMAGE="ghcr.io/${{ github.repository }}/${{ matrix.service }}"
-          NEW_TAG="latest"
           
-          echo "Updating images in Kustomize..."
+          echo "Updating Staging..."
+          cd k8s/overlays/staging
+          kustomize edit set image ${{ matrix.service }}=${NEW_IMAGE}:latest
           
-          # Використовуємо формат name=newName:newTag
-          # Лапки навколо всього виразу обов'язкові
-          kustomize edit set image "${{ matrix.service }}=${NEW_IMAGE}:${NEW_TAG}" k8s/overlays/staging
-          kustomize edit set image "${{ matrix.service }}=${NEW_IMAGE}:${NEW_TAG}" k8s/overlays/production
-
+          echo "Updating Production..."
+          cd ../production
+          kustomize edit set image ${{ matrix.service }}=${NEW_IMAGE}:latest
+      
       - name: Commit and push changes
         run: |
           git config --local user.email "action@github.com"
