@@ -46,19 +46,19 @@ jobs:
           push: true
           tags: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest
 
-      - name: Update Kustomize images
+- name: Update Kustomize images
         run: |
-          # Вказуємо назву образу (як у маніфесті) та новий шлях окремо через "="
-          # Додаємо лапки навколо всього виразу, щоб уникнути помилок з символами
+          # Визначаємо компоненти образу
+          NEW_IMAGE="ghcr.io/${{ github.repository }}/${{ matrix.service }}"
+          NEW_TAG="latest"
           
-          IMAGE_PATH="${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest"
+          echo "Updating images in Kustomize..."
           
-          echo "Updating Staging with image: $IMAGE_PATH"
-          kustomize edit set image "${{ matrix.service }}=$IMAGE_PATH" k8s/overlays/staging
-          
-          echo "Updating Production with image: $IMAGE_PATH"
-          kustomize edit set image "${{ matrix.service }}=$IMAGE_PATH" k8s/overlays/production
-      
+          # Використовуємо формат name=newName:newTag
+          # Лапки навколо всього виразу обов'язкові
+          kustomize edit set image "${{ matrix.service }}=${NEW_IMAGE}:${NEW_TAG}" k8s/overlays/staging
+          kustomize edit set image "${{ matrix.service }}=${NEW_IMAGE}:${NEW_TAG}" k8s/overlays/production
+
       - name: Commit and push changes
         run: |
           git config --local user.email "action@github.com"
