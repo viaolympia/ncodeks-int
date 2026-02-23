@@ -64,7 +64,5 @@ jobs:
 
       - name: Update Kustomize images
         run: |
-          cd k8s/overlays/staging
-          kubectl kustomize edit set image ${{ matrix.service }}=${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest .
-          cd ../production
-          kubectl kustomize edit set image ${{ matrix.service }}=${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest .
+          kubectl kustomize edit set image ${{ matrix.service }}=${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest k8s/overlays/staging
+          kubectl kustomize edit set image ${{ matrix.service }}=${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest k8s/overlays/production
