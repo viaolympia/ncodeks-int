@@ -61,3 +61,10 @@ jobs:
           git commit -m "Update ${{ matrix.service }} image" || exit 0
           git pull --rebase origin main
           git push
+
+      - name: Update Kustomize images
+        run: |
+          cd k8s/overlays/staging
+          kubectl kustomize edit set image ${{ matrix.service }}=${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest .
+          cd ../production
+          kubectl kustomize edit set image ${{ matrix.service }}=${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest .
