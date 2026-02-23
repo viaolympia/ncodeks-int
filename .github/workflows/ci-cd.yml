@@ -46,7 +46,7 @@ jobs:
           push: true
           tags: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest
 
-- name: Update Kustomize images
+      - name: Update Kustomize images
         run: |
           # Визначаємо компоненти образу
           NEW_IMAGE="ghcr.io/${{ github.repository }}/${{ matrix.service }}"
