@@ -48,12 +48,17 @@ jobs:
 
       - name: Update Kustomize images
         run: |
-          echo "Updating Staging..."
-          kustomize edit set image ${{ matrix.service }}=${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest ${GITHUB_WORKSPACE}/k8s/overlays/staging
-
-          echo "Updating Production..."
-          kustomize edit set image ${{ matrix.service }}=${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest ${GITHUB_WORKSPACE}/k8s/overlays/production
-
+          # Вказуємо назву образу (як у маніфесті) та новий шлях окремо через "="
+          # Додаємо лапки навколо всього виразу, щоб уникнути помилок з символами
+          
+          IMAGE_PATH="${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest"
+          
+          echo "Updating Staging with image: $IMAGE_PATH"
+          kustomize edit set image "${{ matrix.service }}=$IMAGE_PATH" k8s/overlays/staging
+          
+          echo "Updating Production with image: $IMAGE_PATH"
+          kustomize edit set image "${{ matrix.service }}=$IMAGE_PATH" k8s/overlays/production
+      
       - name: Commit and push changes
         run: |
           git config --local user.email "action@github.com"
