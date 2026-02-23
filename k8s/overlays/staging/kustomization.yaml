@@ -8,3 +8,6 @@ images:
 - name: cartservice
   newName: ghcr.io/viaolympia/ncodeks-int/cartservice
   newTag: latest
+- name: frontend
+  newName: ghcr.io/viaolympia/ncodeks-int/frontend
+  newTag: latest
