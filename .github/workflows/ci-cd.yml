@@ -23,46 +23,37 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Log in to the Container registry
+      - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set Docker Context Path
-        id: context
-        run: |
-          if [ "${{ matrix.service }}" = "cartservice" ]; then
-            echo "path=./src/cartservice/src" >> $GITHUB_OUTPUT
-          else
-            echo "path=./src/${{ matrix.service }}" >> $GITHUB_OUTPUT
-          fi
-
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ${{ steps.context.outputs.path }}
+          # Визначаємо шлях до контексту Docker для кожного сервісу
+          context: ${{ matrix.service == 'cartservice' ? './src/cartservice/src' : './src/frontend' }}
           push: true
           tags: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest
 
       - name: Update Kustomize images
         run: |
-          cd k8s/overlays/staging
-          kubectl kustomize edit set image ${{ matrix.service }}=${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest
-          cd ../production
-          kubectl kustomize edit set image ${{ matrix.service }}=${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest
+          # Ми НЕ використовуємо 'cd'. Замість цього вказуємо шлях прямо в команді.
+          # Це гарантує, що kubectl знайде kustomization.yaml
+          
+          echo "Updating Staging..."
+          kubectl kustomize edit set image ${{ matrix.service }}=${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest k8s/overlays/staging
+          
+          echo "Updating Production..."
+          kubectl kustomize edit set image ${{ matrix.service }}=${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest k8s/overlays/production
 
       - name: Commit and push changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add .
-          git commit -m "Update ${{ matrix.service }} image" || exit 0
+          git commit -m "Update ${{ matrix.service }} image to latest" || exit 0
           git pull --rebase origin main
           git push
-
-      - name: Update Kustomize images
-        run: |
-          kubectl kustomize edit set image ${{ matrix.service }}=${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest k8s/overlays/staging
-          kubectl kustomize edit set image ${{ matrix.service }}=${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest k8s/overlays/production
