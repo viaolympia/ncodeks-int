@@ -46,13 +46,13 @@ jobs:
           push: true
           tags: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest
 
-      - name: Update Kustomize images
-        run: |
+       - name: Update Kustomize images
+         run: |
           echo "Updating Staging..."
-          kubectl kustomize edit set image ${{ matrix.service }}=${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest k8s/overlays/staging
-          
+          cd k8s/overlays/staging && kustomize edit set image "${{ matrix.service }}=${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest"
+          cd ../../../
           echo "Updating Production..."
-          kubectl kustomize edit set image ${{ matrix.service }}=${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest k8s/overlays/production
+          cd k8s/overlays/production && kustomize edit set image "${{ matrix.service }}=${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest"
 
       - name: Commit and push changes
         run: |
