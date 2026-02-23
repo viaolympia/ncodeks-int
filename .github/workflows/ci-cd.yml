@@ -30,19 +30,24 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set Docker Context
+        id: docker_context
+        run: |
+          if [ "${{ matrix.service }}" = "cartservice" ]; then
+            echo "path=./src/cartservice/src" >> $GITHUB_OUTPUT
+          else
+            echo "path=./src/frontend" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          # Визначаємо шлях до контексту Docker для кожного сервісу
-          context: ${{ matrix.service == 'cartservice' ? './src/cartservice/src' : './src/frontend' }}
+          context: ${{ steps.docker_context.outputs.path }}
           push: true
           tags: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest
 
       - name: Update Kustomize images
         run: |
-          # Ми НЕ використовуємо 'cd'. Замість цього вказуємо шлях прямо в команді.
-          # Це гарантує, що kubectl знайде kustomization.yaml
-          
           echo "Updating Staging..."
           kubectl kustomize edit set image ${{ matrix.service }}=${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest k8s/overlays/staging
           
